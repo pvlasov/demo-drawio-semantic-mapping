@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="EN">
+  <head>
+    <title>Shared Services Account</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.2/cerulean/bootstrap.min.css" id="nsd-bootstrap-theme-stylesheet">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.min.js"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Nasdanika/html@master/model/app.gen/web-resources/css/app.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jstree@3.3.11/dist/themes/default/style.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.3.1/build/styles/default.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-vue@2.21.2/dist/bootstrap-vue.css">
+    <script src="https://cdn.jsdelivr.net/gh/Nasdanika/html@master/model/app.gen/web-resources/js/common.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/Nasdanika/html@master/model/app.gen/web-resources/js/dark-head.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jstree@3.3.11/dist/jstree.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.3.1/build/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap-vue@2.21.2/dist/bootstrap-vue.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/Nasdanika/html@master/model/app.gen/web-resources/js/components/table.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script><!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9BRJVLK8CC"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-9BRJVLK8CC');
+</script>    
+
+<script src="../../search-documents.js"></script>
+
+<script src="https://unpkg.com/lunr/lunr.js"></script>
+
+<script>
+// Script for full-text search of JsTree
+
+window.nsdJsTreeSearchCallback = function(str, node) { 
+    var sf = new $.vakata.search(str, true, { caseSensitive : false, fuzzy : false }); 
+    if (sf.search(node.text).isMatch) {
+		return true;
+	} 
+    let searchResult = this.search(str); 
+    for (const sr in searchResult) {
+        if (searchResult[sr].ref === node.original['data-nsd-action-uuid']) {
+            return true;
+        } 
+    } 
+    return false; 
+}.bind(lunr(function () {
+			  this.ref('id');
+			  this.field('title');
+			  this.field('content');
+
+			  for (const key in searchDocuments) {
+				  let doc = searchDocuments[key];
+				this.add({
+					id: doc['action-uuid'],
+					title: doc.title,
+					path: doc.path,
+					content: doc.content
+				});  
+			  }
+			}));
+</script>
+</head>
+  <body>
+    <div class="container-fluid nsd-app-container">
+      <div class="row">
+        <div class="col nsd-app-header">
+          <a href="https://www.nasdanika.org" title="Root action" data-nsd-action-uuid="f7ead9da-c401-4451-86ce-ee00a07da7c9" class="nsd-app-header-title">
+            <img src="https://docs.nasdanika.org/images/nasdanika-logo.png" class="nsd-app-label-icon">Nasdanika</a>
+          <ul class="nav nsd-app-header-navs">
+            <li class="nav-item">
+              <a href="../../search.html" data-nsd-action-uuid="bcb4d826-9e9a-4721-bc7e-c6e2f65541ab" class="nav-link"><span class="fas fa-search nsd-app-label-icon"></span>Search</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col nsd-app-navbar">
+          <ul class="navbar navbar-light navbar-expand-lg">
+            <a href="../../index.html" data-nsd-action-uuid="4df36e3d-cb94-4a3f-bee2-345ca8f96286" class="navbar-brand">AWS</a>
+            <button type="button" data-toggle="collapse" data-target="#nsd_jj" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler"><span class="navbar-toggler-icon"></span>
+            </button>
+            <div id="nsd_jj" class="collapse navbar-collapse"></div>
+          </ul>
+        </div>
+      </div>
+      <div class="row nsd-app-content-row">
+        <div class="col nsd-app-navigation-panel">
+          <input type="text" id="0-navigation-panel_searchInput" title="Full-text search. You can use wildcards, e.g. 'foo*' or 'f*o'; title or content fields, e.g. 'title:foo* bar'; boosts, e.g. 'foo^10 bar'; fuzzy matches, e.g. 'foo~1'; and term presence, e.g. '+foo bar -baz'" class="form-control mt-1">
+          <div id="0-navigation-panel"></div>
+          <script>$(document).ready( function() {
+$('#0-navigation-panel').jstree(function(tree) { tree.state.filter = function(state) { delete state.core.selected; return state; };  tree.search.search_callback = function(searchStr, node) { if (typeof window.nsdJsTreeSearchCallback === 'function') return window.nsdJsTreeSearchCallback(searchStr, node); var sf = new $.vakata.search(searchStr, true, { caseSensitive : false, fuzzy : false }); return sf.search(node.text).isMatch; }; return tree; }({"core":{"data":[{"a_attr":{"onclick":"window.location='../218O8zdIhuJC0JnV0giS-1/index.html';"},"children":[{"a_attr":{"onclick":"window.location='../218O8zdIhuJC0JnV0giS-1/children/218O8zdIhuJC0JnV0giS-2/index.html';"},"children":[{"a_attr":{"onclick":"window.location='../218O8zdIhuJC0JnV0giS-1/children/218O8zdIhuJC0JnV0giS-2/children/voSFeMxhKVTy8DsKQmAo-1/index.html';"},"id":"nsd-app-nav-item-voSFeMxhKVTy8DsKQmAo-1","text":"A","data-nsd-action-uuid":"c8693586-5095-46ec-8d8e-726adc187faa","type":"leaf"}],"id":"nsd-app-nav-item-218O8zdIhuJC0JnV0giS-2","text":"Sample Integration","data-nsd-action-uuid":"8ec9a4c5-ef79-4da1-87aa-d6876e974e11"}],"id":"nsd-app-nav-item-218O8zdIhuJC0JnV0giS-1","text":"Integrations","data-nsd-action-uuid":"69398e59-78d8-46cd-831f-b33cb3554c5b"},{"a_attr":{"onclick":"window.location='../UEzPUAAOIrF-is8g5C7q-175/index.html';"},"children":[{"a_attr":{"onclick":"window.location='../UEzPUAAOIrF-is8g5C7q-175/children/KoX205Y9Ra7aIB-jNtiT-2/index.html';"},"children":[{"a_attr":{"onclick":"window.location='../UEzPUAAOIrF-is8g5C7q-175/children/KoX205Y9Ra7aIB-jNtiT-2/children/KoX205Y9Ra7aIB-jNtiT-3/index.html';"},"icon":"fas fa-lock","id":"nsd-app-nav-item-KoX205Y9Ra7aIB-jNtiT-3","text":"Super-Secret","data-nsd-action-uuid":"81e55133-2d5a-4cf5-a474-6623f8661560","type":"leaf"}],"id":"nsd-app-nav-item-KoX205Y9Ra7aIB-jNtiT-2","text":"Kubernetes","data-nsd-action-uuid":"ee70165a-47c4-4458-b107-ec244ba41b67"},{"a_attr":{"onclick":"window.location='../UEzPUAAOIrF-is8g5C7q-175/children/UEzPUAAOIrF-is8g5C7q-184/index.html';"},"id":"nsd-app-nav-item-UEzPUAAOIrF-is8g5C7q-184","text":"Core OU","data-nsd-action-uuid":"61e7be60-5f64-4d91-8e9b-4ea8840b8ca9","type":"leaf"},{"a_attr":{"onclick":"window.location='../UEzPUAAOIrF-is8g5C7q-175/children/s3/index.html';"},"icon":"fas fa-database","id":"nsd-app-nav-item-UEzPUAAOIrF-is8g5C7q-177","text":"Amazon S3 Bucket","data-nsd-action-uuid":"f62dd2e8-198a-430d-a8a2-d6f28c5e62fa","type":"leaf"},{"a_attr":{"onclick":"window.location='../UEzPUAAOIrF-is8g5C7q-175/children/UEzPUAAOIrF-is8g5C7q-181/index.html';"},"id":"nsd-app-nav-item-UEzPUAAOIrF-is8g5C7q-181","text":"Account Baseline","data-nsd-action-uuid":"9b96b44b-9033-4a8c-b6a7-71bce4afd673","type":"leaf"},{"a_attr":{"onclick":"window.location='../UEzPUAAOIrF-is8g5C7q-175/children/UEzPUAAOIrF-is8g5C7q-180/index.html';"},"id":"nsd-app-nav-item-UEzPUAAOIrF-is8g5C7q-180","text":"AWS Single Sign-on","data-nsd-action-uuid":"db2c78d4-7598-4222-8c73-e6994a1c87d9","type":"leaf"},{"a_attr":{"onclick":"window.location='../UEzPUAAOIrF-is8g5C7q-175/children/UEzPUAAOIrF-is8g5C7q-182/index.html';"},"id":"nsd-app-nav-item-UEzPUAAOIrF-is8g5C7q-182","text":"AWS Service Catalog","data-nsd-action-uuid":"095e158b-b146-4df3-977d-930be6b0cf39","type":"leaf"},{"a_attr":{"onclick":"window.location='../UEzPUAAOIrF-is8g5C7q-175/children/UEzPUAAOIrF-is8g5C7q-183/index.html';"},"id":"nsd-app-nav-item-UEzPUAAOIrF-is8g5C7q-183","text":"AWS Parameter Store","data-nsd-action-uuid":"4760da9d-099c-4476-9422-575e1ce534b2","type":"leaf"},{"a_attr":{"onclick":"window.location='../UEzPUAAOIrF-is8g5C7q-175/children/UEzPUAAOIrF-is8g5C7q-179/index.html';"},"id":"nsd-app-nav-item-UEzPUAAOIrF-is8g5C7q-179","text":"AWS Organizations","data-nsd-action-uuid":"055b9123-d7f3-40f7-b8c7-5a2e0feefede","type":"leaf"},{"a_attr":{"onclick":"window.location='../UEzPUAAOIrF-is8g5C7q-175/children/UEzPUAAOIrF-is8g5C7q-178/index.html';"},"id":"nsd-app-nav-item-UEzPUAAOIrF-is8g5C7q-178","text":"AWS CodePipeline","data-nsd-action-uuid":"d0b0789f-f54a-4ff5-9f20-0b0a7ca94a99","type":"leaf"}],"id":"nsd-app-nav-item-UEzPUAAOIrF-is8g5C7q-175","text":"AWS Cloud","data-nsd-action-uuid":"52c7f003-f6b4-4e7f-a526-6b14511be834"},{"a_attr":{"onclick":"window.location='../UEzPUAAOIrF-is8g5C7q-185/index.html';"},"children":[{"a_attr":{"onclick":"window.location='../UEzPUAAOIrF-is8g5C7q-185/children/UEzPUAAOIrF-is8g5C7q-189/index.html';"},"id":"nsd-app-nav-item-UEzPUAAOIrF-is8g5C7q-189","text":"Account Baseline","data-nsd-action-uuid":"efaa4ed8-db3e-485a-8b69-6a26f6766063","type":"leaf"},{"a_attr":{"onclick":"window.location='../UEzPUAAOIrF-is8g5C7q-185/children/UEzPUAAOIrF-is8g5C7q-190/index.html';"},"id":"nsd-app-nav-item-UEzPUAAOIrF-is8g5C7q-190","text":"Aggregate CloudTrail and Config Logs","data-nsd-action-uuid":"a332a6c5-85b9-4a00-9366-b3d668873eba","type":"leaf"}],"id":"nsd-app-nav-item-UEzPUAAOIrF-is8g5C7q-185","text":"Log Archive Account","data-nsd-action-uuid":"6a6a8735-3354-40a5-9844-51549bf8f5f8"},{"a_attr":{"onclick":"window.location='../UEzPUAAOIrF-is8g5C7q-186/index.html';"},"children":[{"a_attr":{"onclick":"window.location='../UEzPUAAOIrF-is8g5C7q-186/children/UEzPUAAOIrF-is8g5C7q-191/index.html';"},"id":"nsd-app-nav-item-UEzPUAAOIrF-is8g5C7q-191","text":"Account Baseline","data-nsd-action-uuid":"25a10a69-d02a-4a0e-a7c2-fec561cff335","type":"leaf"},{"a_attr":{"onclick":"window.location='../UEzPUAAOIrF-is8g5C7q-186/children/UEzPUAAOIrF-is8g5C7q-193/index.html';"},"id":"nsd-app-nav-item-UEzPUAAOIrF-is8g5C7q-193","text":"Amazon GuardDuty","data-nsd-action-uuid":"e077e3bd-8eb6-40e3-a704-10c00b4daf48","type":"leaf"},{"a_attr":{"onclick":"window.location='../UEzPUAAOIrF-is8g5C7q-186/children/UEzPUAAOIrF-is8g5C7q-194/index.html';"},"id":"nsd-app-nav-item-UEzPUAAOIrF-is8g5C7q-194","text":"Amazon SNS","data-nsd-action-uuid":"ecf342dd-2358-4466-989f-13698008195e","type":"leaf"},{"a_attr":{"onclick":"window.location='../UEzPUAAOIrF-is8g5C7q-186/children/UEzPUAAOIrF-is8g5C7q-192/index.html';"},"id":"nsd-app-nav-item-UEzPUAAOIrF-is8g5C7q-192","text":"Security Cross-Account Roles","data-nsd-action-uuid":"146bf280-a086-4db3-ab88-a9a45682eb61","type":"leaf"}],"id":"nsd-app-nav-item-UEzPUAAOIrF-is8g5C7q-186","text":"Security Account","data-nsd-action-uuid":"ee820938-af22-4ec5-9177-3b1f592f340b"},{"children":[{"a_attr":{"onclick":"window.location='children/UEzPUAAOIrF-is8g5C7q-187/index.html';"},"id":"nsd-app-nav-item-UEzPUAAOIrF-is8g5C7q-187","text":"Account Baseline","data-nsd-action-uuid":"4abf6988-f437-4d33-9337-a9e5096d71ba","type":"leaf"},{"a_attr":{"onclick":"window.location='children/UEzPUAAOIrF-is8g5C7q-188/index.html';"},"id":"nsd-app-nav-item-UEzPUAAOIrF-is8g5C7q-188","text":"Amazon VPC","data-nsd-action-uuid":"3776205b-0e50-46ea-a68b-901f8b4ca03b","type":"leaf"}],"state":{"selected":true},"id":"nsd-app-nav-item-UEzPUAAOIrF-is8g5C7q-176","text":"Shared Services Account","data-nsd-action-uuid":"4e6a9e89-79fc-487c-aedf-3c230406d1b1"}]},"search":{"show_only_matches":true,"show_only_matches_children":true},"types":{"leaf":{"icon":"jstree-file"}},"plugins":["state","type","search"],"state":{"key":"0-navigation-panel"}}));
+// Tokens: searchInputSelector, timer, treeSelector
+$('#0-navigation-panel_searchInput').keyup(function () {
+    if (window['nsd_jstTreeSearchTimer_nsd_k9']) { 
+		clearTimeout(window['nsd_jstTreeSearchTimer_nsd_k9']); 
+	}
+    window['nsd_jstTreeSearchTimer_nsd_k9'] = setTimeout(function () {
+      var v = $('#0-navigation-panel_searchInput').val();
+      $('#0-navigation-panel').jstree(true).search(v);
+    }, 250);
+  });
+
+});</script>
+        </div>
+        <div data-nsd-action-uuid="4e6a9e89-79fc-487c-aedf-3c230406d1b1" class="col nsd-app-content-panel">
+          <div class="container-fluid">
+            <div class="row nsd-app-content-panel-title-and-items-row">
+              <div class="col-auto">
+                <h1><span data-nsd-action-uuid="4e6a9e89-79fc-487c-aedf-3c230406d1b1" class="nsd-app-content-panel-title">Shared Services Account</span>
+                </h1>
+              </div>
+            </div>
+            <div class="row nsd-app-content-panel-content-row">
+              <div class="col">
+                <div class="container-fluid">
+                  <div class="row">
+                    <div class="col"><ul>
+<li>
+<a href="children/UEzPUAAOIrF-is8g5C7q-187/index.html">Account Baseline</a></li>
+<li>
+<a href="children/UEzPUAAOIrF-is8g5C7q-188/index.html">Amazon VPC</a></li>
+</ul>
+</div>
+                  </div>
+                  <div class="row">
+                    <div class="col">
+                      <div class="container-fluid">
+                        <div class="row nsd-app-content-panel-title-and-items-row">
+                          <div class="col-auto">
+                            <h2>
+                              <a name="inbound-connections" data-nsd-action-uuid="4f6ab6e8-af69-4abd-8d2e-ecca2becfb40" class="nsd-app-content-panel-title">Inbound connections</a>
+                            </h2>
+                          </div>
+                        </div>
+                        <div class="row nsd-app-content-panel-content-row">
+                          <div class="col">
+                            <div class="container-fluid">
+                              <div class="row">
+                                <div class="col">
+<table style="width:auto" class="table table-bordered">
+  <tbody><tr>
+    <th>Label</th>
+    <th>Source</th>
+    <th>Tooltip</th>
+  </tr>
+  <tr>
+    <td></td>
+    <td><a href="../UEzPUAAOIrF-is8g5C7q-175/children/UEzPUAAOIrF-is8g5C7q-184/index.html">Core OU</a></td>
+    <td></td>
+  </tr>
+</tbody></table></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col nsd-app-footer">
+          <ul class="nav nsd-app-footer-navs">
+            <li class="nav-item">
+              <a href="https://github.com/Nasdanika/demo-drawio-actions" data-nsd-action-uuid="315b5535-a6fc-4ced-a760-b89fded17942" class="nav-link"><span class="fab fa-github nsd-app-label-icon"></span>Source</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  
+</body></html>
