@@ -99,13 +99,7 @@ import com.redfin.sitemapgenerator.WebSitemapUrl;
 public class TestDrawioActionsGen {
 	
 	private static final File GENERATED_MODELS_BASE_DIR = new File("target/model-doc");
-//	private static final File ENGINEERING_MODELS_DIR = new File(GENERATED_MODELS_BASE_DIR, "models");
-//	private static final File ACTION_MODELS_DIR = new File(GENERATED_MODELS_BASE_DIR, "actions");
 	private static final File RESOURCE_MODELS_DIR = new File(GENERATED_MODELS_BASE_DIR, "resources");
-//	
-//	private static final URI ENGINEERING_MODELS_URI = URI.createFileURI(ENGINEERING_MODELS_DIR.getAbsolutePath() + "/");	
-//	private static final URI ACTION_MODELS_URI = URI.createFileURI(ACTION_MODELS_DIR.getAbsolutePath() + "/");	
-//	private static final URI RESOURCE_MODELS_URI = URI.createFileURI(RESOURCE_MODELS_DIR.getAbsolutePath() + "/");		
 	
 	/**
 	 * Generates a resource model from an action model.
