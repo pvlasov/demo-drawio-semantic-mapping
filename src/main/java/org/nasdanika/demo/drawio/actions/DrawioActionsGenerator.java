@@ -1,8 +1,5 @@
 package org.nasdanika.demo.drawio.actions;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.fail;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
@@ -14,12 +11,14 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.ServiceLoader;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -39,9 +38,9 @@ import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl;
 import org.eclipse.emf.ecore.util.Diagnostician;
 import org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl;
 import org.json.JSONObject;
+import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.junit.Test;
 import org.nasdanika.common.ConsumerFactory;
 import org.nasdanika.common.Context;
 import org.nasdanika.common.DefaultConverter;
@@ -56,6 +55,8 @@ import org.nasdanika.common.SupplierFactory;
 import org.nasdanika.common.resources.BinaryEntityContainer;
 import org.nasdanika.common.resources.FileSystemContainer;
 import org.nasdanika.drawio.ConnectionBase;
+import org.nasdanika.drawio.ElementComparator;
+import org.nasdanika.drawio.ModelElement;
 import org.nasdanika.emf.EObjectAdaptable;
 import org.nasdanika.emf.persistence.EObjectLoader;
 import org.nasdanika.emf.persistence.GitMarkerFactory;
@@ -96,7 +97,7 @@ import com.redfin.sitemapgenerator.WebSitemapUrl;
  * @author Pavel
  *
  */
-public class TestDrawioActionsGen {
+public class DrawioActionsGenerator {
 	
 	private static final File GENERATED_MODELS_BASE_DIR = new File("target/model-doc");
 	private static final File RESOURCE_MODELS_DIR = new File(GENERATED_MODELS_BASE_DIR, "resources");
@@ -108,18 +109,68 @@ public class TestDrawioActionsGen {
 	private void generateResourceModel(String name, Context context, ProgressMonitor progressMonitor) throws Exception {
 		ResourceSet resourceSet = createResourceSet(context, progressMonitor); 
 		
-		resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap().put("drawio", new AppDrawioResourceFactory(ConnectionBase.SOURCE, resourceSet));
+		resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap().put("drawio", new AppDrawioResourceFactory(ConnectionBase.SOURCE, resourceSet) {
+			
+			@Override
+			protected Comparator<org.nasdanika.drawio.Element> loadChildComparator(ModelElement parent,	String defaultSort) {
+				// Fix until the next release
+				return new ElementComparator() {
+					
+					@Override
+					public int compare(org.nasdanika.drawio.Element o1, org.nasdanika.drawio.Element o2) {
+						if (Objects.equals(o1, o2)) {
+							return 0;
+						}
+						
+						if (o1 instanceof ModelElement && o2 instanceof ModelElement) {
+							String l1 = ((ModelElement) o1).getLabel();
+							if (l1 != null) {
+								l1 = Jsoup.parse(l1).text();
+							}
+							String l2 = ((ModelElement) o2).getLabel();
+							if (l2 != null) {
+								l2 = Jsoup.parse(l2).text();
+							}
+							
+							if (org.nasdanika.common.Util.isBlank(l1)) {
+								if (!org.nasdanika.common.Util.isBlank(l2)) {
+									return 1;
+								}
+							}
+							
+							if (org.nasdanika.common.Util.isBlank(l2)) {
+								if (!org.nasdanika.common.Util.isBlank(l1)) {
+									return -1;
+								}
+							}
+							
+							if (!org.nasdanika.common.Util.isBlank(l1) && !org.nasdanika.common.Util.isBlank(l2)) {
+								return l1.compareTo(l2);
+							}       					
+						}
+
+						return o1.hashCode() - o2.hashCode();
+					}
+					
+				};
+			}
+			
+		});
 		EObjectLoader eObjectLoader = new EObjectLoader(null, null, resourceSet);
 		eObjectLoader.setMarkerFactory(new GitMarkerFactory());
 		Resource.Factory appYamlResourceFactory = new YamlResourceFactory(eObjectLoader, context, progressMonitor);
 		resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap().put("yml", appYamlResourceFactory);
 		
 		File modelFile = new File("model/" + name);
-		assertThat(modelFile.isFile());
+		if (!modelFile.isFile()) {
+			throw new IllegalArgumentException("Not a file: " + modelFile);
+		}
 		Resource modelResource = resourceSet.getResource(URI.createFileURI(modelFile.getCanonicalPath()), true);
 		
 		Consumer<Diagnostic> diagnosticConsumer = diagnostic -> {
-			assertThat(diagnostic.getStatus()).isEqualTo(Status.SUCCESS);
+			if (diagnostic.getStatus() != Status.SUCCESS) {
+				throw new DiagnosticException(diagnostic);
+			}
 		};
 		
 		String actionsResource = "model/root-action.yml";
@@ -352,8 +403,7 @@ public class TestDrawioActionsGen {
 		
 		return resourceSet;
 	}
-	
-	
+		
 	/**
 	 * Generates files from the previously generated resource model.
 	 * @throws Exception
@@ -371,7 +421,9 @@ public class TestDrawioActionsGen {
 		for (EObject eObject : containerResource.getContents()) {
 			Diagnostician diagnostician = new Diagnostician();
 			org.eclipse.emf.common.util.Diagnostic diagnostic = diagnostician.validate(eObject);
-			assertThat(diagnostic.getSeverity()).isNotEqualTo(org.eclipse.emf.common.util.Diagnostic.ERROR);
+			if (org.eclipse.emf.common.util.Diagnostic.ERROR == diagnostic.getSeverity()) {
+				throw new org.eclipse.emf.common.util.DiagnosticException(diagnostic);
+			}
 			// Diagnosing loaded resources. 
 			try {
 				ConsumerFactory<BinaryEntityContainer> consumerFactory = Objects.requireNonNull(EObjectAdaptable.adaptToConsumerFactory(eObject, BinaryEntityContainer.class), "Cannot adapt to ConsumerFactory");
@@ -382,7 +434,9 @@ public class TestDrawioActionsGen {
 					System.err.println("***********************");
 					callDiagnostic.dump(System.err, 4, Status.FAIL, Status.ERROR);
 				}
-				assertThat(callDiagnostic.getStatus()).isEqualTo(Status.SUCCESS);
+				if (Status.SUCCESS != callDiagnostic.getStatus()) {
+					throw new DiagnosticException(callDiagnostic);
+				}
 			} catch (DiagnosticException e) {
 				System.err.println("******************************");
 				System.err.println("*      Diagnostic failed     *");
@@ -482,7 +536,7 @@ public class TestDrawioActionsGen {
 							System.err.println("[" + path +"] " + error);
 							problems.incrementAndGet();
 						});
-						JSONObject searchDocument = org.nasdanika.html.model.app.gen.Util.createSearchDocument(path, file, inspector, TestDrawioActionsGen.this::configureSearch);
+						JSONObject searchDocument = org.nasdanika.html.model.app.gen.Util.createSearchDocument(path, file, inspector, DrawioActionsGenerator.this::configureSearch);
 						if (searchDocument != null) {
 							searchDocuments.put(path, searchDocument);
 						}
@@ -500,7 +554,7 @@ public class TestDrawioActionsGen {
 		}
 		
 		if (problems.get() > 0) {
-			fail("There are broken links: " + problems.get());
+			throw new NasdanikaException("There are broken links: " + problems.get());
 		};
 	}
 		
@@ -533,7 +587,6 @@ public class TestDrawioActionsGen {
 		}
 	}	
 	
-	@Test
 	public void generate() throws Exception {
 		delete(new File("docs").listFiles());
 		ProgressMonitor progressMonitor = new NullProgressMonitor(); // PrintStreamProgressMonitor();		
