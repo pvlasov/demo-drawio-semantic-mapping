@@ -1,5 +1,5 @@
 app-action:
-  location: ${base-uri}search.html
+  location: ${base-uri}aws/search.html
   icon: fas fa-search
   text: Search
   content:
