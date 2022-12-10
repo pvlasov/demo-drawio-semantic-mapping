@@ -1,8 +1,8 @@
-module org.nasdanika.demo.drawio.actions {
+module org.nasdanika.demo.drawio.semanticmapping {
 		
-	requires org.nasdanika.html.model.app.drawio;
-	requires org.nasdanika.html.model.app.gen;
-	requires org.nasdanika.html.jstree;
 	requires org.eclipse.emf.ecore.xmi;
+	requires org.nasdanika.html.emf;
+	requires org.nasdanika.html.model.app.gen;
 	requires sitemapgen4j;
+	
 }

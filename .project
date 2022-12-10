@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>org.nasdanika.demo.drawio.actions</name>
-	<comment>Demo of generating an action model and then a static web site from a Drawio diagram</comment>
+	<name>org.nasdanika.demo.drawio.semantic-mapping</name>
+	<comment>Demo of semantic mapping of Drawio diagrams to Ncore model</comment>
 	<projects>
 	</projects>
 	<buildSpec>

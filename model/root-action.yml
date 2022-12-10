@@ -3,6 +3,16 @@ app-action:
   text: Nasdanika
   location: https://www.nasdanika.org 
   tooltip: Root action
+  children:
+    - app-action-reference: "../target/model-doc/actions/high-level-architecture.drawio.xml#/"
+    - app-action:
+        location: ${base-uri}search.html
+        icon: fas fa-search
+        text: Search
+        content:
+          content-interpolator:
+            source:
+              content-resource: search.html
   navigation:
     - app-action:
         icon: fab fa-github
