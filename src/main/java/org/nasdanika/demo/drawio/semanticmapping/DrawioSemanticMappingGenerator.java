@@ -25,6 +25,8 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import javax.xml.transform.TransformerException;
+
 import org.eclipse.emf.common.notify.Adapter;
 import org.eclipse.emf.common.notify.Notifier;
 import org.eclipse.emf.common.util.ECollections;
@@ -70,6 +72,7 @@ import org.nasdanika.exec.resources.ResourcesFactory;
 import org.nasdanika.exec.resources.ResourcesPackage;
 import org.nasdanika.html.emf.ActionProviderAdapterFactory;
 import org.nasdanika.html.emf.EObjectActionResolver;
+import org.nasdanika.html.emf.NcoreActionBuilder;
 import org.nasdanika.html.jstree.JsTreeFactory;
 import org.nasdanika.html.jstree.JsTreeNode;
 import org.nasdanika.html.model.app.Action;
@@ -419,7 +422,9 @@ public class DrawioSemanticMappingGenerator {
 					
 					URI bURI = uriResolver.apply(action, (URI) null);
 					URI tURI = uriResolver.apply(treeAction, bURI);
-					link.setLocation(tURI.toString());
+					if (tURI != null) {
+						link.setLocation(tURI.toString());
+					}
 					LinkJsTreeNodeSupplierFactoryAdapter<Link> adapter = new LinkJsTreeNodeSupplierFactoryAdapter<>(link);
 					
 					try {
@@ -486,6 +491,15 @@ public class DrawioSemanticMappingGenerator {
 			};			
 			MutableContext mctx = contentProviderContext.fork();
 			mctx.put("nsd-site-map-tree-script", siteMapTreeScriptComputer);
+			
+			Map<String, org.nasdanika.drawio.Document> representations = NcoreActionBuilder.resolveRepresentationLinks(action, uriResolver, progressMonitor);
+			for (Entry<String, org.nasdanika.drawio.Document> representationEntry: representations.entrySet()) {
+				try {
+					mctx.put("representations/" + representationEntry.getKey() + "/diagram", representationEntry.getValue().save(true));
+				} catch (TransformerException | IOException e) {
+					throw new NasdanikaException("Error saving document");
+				}
+			}
 			
 			List<Object> contentContributions = new ArrayList<>();
 			mctx.register(ContentConsumer.class, (ContentConsumer) contentContributions::add);			
