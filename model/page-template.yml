@@ -34,5 +34,5 @@ bootstrap-page:
     app-page:
       fluid: true
       navigation-panel:
-        style: SEARCHABLE_TREE
+        style: SEARCHABLE_TREE # COLLAPSIBLE_CARDS
         #collapsible: true
