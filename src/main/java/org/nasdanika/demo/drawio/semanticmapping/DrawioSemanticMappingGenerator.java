@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.function.BiConsumer;
@@ -53,6 +54,7 @@ import org.nasdanika.common.MutableContext;
 import org.nasdanika.common.NasdanikaException;
 import org.nasdanika.common.PrintStreamProgressMonitor;
 import org.nasdanika.common.ProgressMonitor;
+import org.nasdanika.common.PropertyComputer;
 import org.nasdanika.common.Status;
 import org.nasdanika.common.Supplier;
 import org.nasdanika.common.SupplierFactory;
@@ -70,6 +72,9 @@ import org.nasdanika.exec.resources.Container;
 import org.nasdanika.exec.resources.ReconcileAction;
 import org.nasdanika.exec.resources.ResourcesFactory;
 import org.nasdanika.exec.resources.ResourcesPackage;
+import org.nasdanika.html.HTMLFactory;
+import org.nasdanika.html.Tag;
+import org.nasdanika.html.TagName;
 import org.nasdanika.html.emf.ActionProviderAdapterFactory;
 import org.nasdanika.html.emf.EObjectActionResolver;
 import org.nasdanika.html.emf.NcoreActionBuilder;
@@ -93,6 +98,7 @@ import org.nasdanika.html.model.html.HtmlPackage;
 import org.nasdanika.html.model.html.gen.ContentConsumer;
 import org.nasdanika.ncore.NcorePackage;
 import org.nasdanika.ncore.util.NcoreResourceSet;
+import org.nasdanika.ncore.util.NcoreUtil;
 import org.nasdanika.persistence.ObjectLoaderResourceFactory;
 import org.nasdanika.resources.BinaryEntityContainer;
 import org.nasdanika.resources.FileSystemContainer;
@@ -409,7 +415,7 @@ public class DrawioSemanticMappingGenerator {
 			java.util.function.Function<Context, String> siteMapTreeScriptComputer = ctx -> {
 				// TODO - actions from action prototype, e.g. Ecore doc actions, to the tree.
 				
-				JsTreeFactory jsTreeFactory = context.get(JsTreeFactory.class, JsTreeFactory.INSTANCE);
+				JsTreeFactory jsTreeFactory = contentProviderContext.get(JsTreeFactory.class, JsTreeFactory.INSTANCE);
 				Map<EObject, JsTreeNode> nodeMap = new HashMap<>();
 				for (Entry<EObject, Action> re: registry.entrySet()) {
 					Action treeAction = re.getValue();
@@ -488,7 +494,8 @@ public class DrawioSemanticMappingGenerator {
 				String filter = NavigationPanelConsumerFactoryAdapter.CLEAR_STATE_FILTER + " tree.search.search_callback = (results, node) => results.split(' ').includes(node.original['data-nsd-action-uuid']);";
 				
 				return jsTreeFactory.bind("#nsd-site-map-tree", jsTree, filter, null).toString();				
-			};			
+			};		
+			
 			MutableContext mctx = contentProviderContext.fork();
 			mctx.put("nsd-site-map-tree-script", siteMapTreeScriptComputer);
 			
@@ -500,6 +507,72 @@ public class DrawioSemanticMappingGenerator {
 					throw new NasdanikaException("Error saving document");
 				}
 			}
+			
+			Optional<URI> baseSemanticURI = registry.entrySet().stream().filter(e -> Objects.equals(e.getValue().getUuid(), action.getUuid())).map(e -> NcoreUtil.getUri(e.getKey())).filter(u -> !u.isRelative()).findFirst();									
+			
+			PropertyComputer semanticLinkPropertyComputer = new PropertyComputer() {
+				
+				@SuppressWarnings("unchecked")
+				@Override
+				public <T> T compute(Context propertyComputerContext, String key, String path, Class<T> type) {
+					if (type == null || type.isAssignableFrom(String.class)) {
+						int spaceIdx = path.indexOf(' ');
+						URI targetURI = URI.createURI(spaceIdx == -1 ? path : path.substring(0, spaceIdx));
+						if (baseSemanticURI.isPresent() && targetURI.isRelative()) {
+							targetURI = targetURI.resolve(baseSemanticURI.get().appendSegment(""));
+						}	
+						URI bURI = uriResolver.apply(action, (URI) null);						
+						for (Entry<EObject, Action> registryEntry: registry.entrySet()) {
+							URI semanticURI = NcoreUtil.getUri(registryEntry.getKey());
+							if (Objects.equals(targetURI, semanticURI)) {
+								Action targetAction = registryEntry.getValue();
+								HTMLFactory htmlFactory = propertyComputerContext.get(HTMLFactory.class, HTMLFactory.INSTANCE);
+								URI targetActionURI = uriResolver.apply(targetAction, bURI);
+								Tag tag = htmlFactory.tag(targetActionURI == null ? TagName.span : TagName.a, spaceIdx == -1 ? targetAction.getText() : path.substring(spaceIdx + 1));
+								String targetActionDescription = targetAction.getDescription();
+								if (!org.nasdanika.common.Util.isBlank(targetActionDescription)) {
+									tag.attribute("title", targetActionDescription);
+								}
+								if (targetActionURI != null) {
+									tag.attribute("href", targetActionURI.toString());
+								}
+								return (T) tag.toString(); 
+							}
+						}
+					}
+					return null;
+				}
+			};
+			
+			mctx.put("semantic-link", semanticLinkPropertyComputer);
+						
+			PropertyComputer semanticReferencePropertyComputer = new PropertyComputer() {
+				
+				@SuppressWarnings("unchecked")
+				@Override
+				public <T> T compute(Context propertyComputerContext, String key, String path, Class<T> type) {
+					if (type == null || type.isAssignableFrom(String.class)) {
+						URI targetURI = URI.createURI(path);
+						if (baseSemanticURI.isPresent() && targetURI.isRelative()) {
+							targetURI = targetURI.resolve(baseSemanticURI.get().appendSegment(""));
+						}	
+						URI bURI = uriResolver.apply(action, (URI) null);						
+						for (Entry<EObject, Action> registryEntry: registry.entrySet()) {
+							URI semanticURI = NcoreUtil.getUri(registryEntry.getKey());
+							if (Objects.equals(targetURI, semanticURI)) {
+								Action targetAction = registryEntry.getValue();
+								URI targetActionURI = uriResolver.apply(targetAction, bURI);
+								if (targetActionURI != null) {
+									return (T) targetActionURI.toString();
+								}
+							}
+						}
+					}
+					return null;
+				}
+			};
+			
+			mctx.put("semantic-ref", semanticReferencePropertyComputer);			
 			
 			List<Object> contentContributions = new ArrayList<>();
 			mctx.register(ContentConsumer.class, (ContentConsumer) contentContributions::add);			
