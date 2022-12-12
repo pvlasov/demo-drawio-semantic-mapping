@@ -1,4 +1,4 @@
-Business capability 1 documentation...
+AWS documentation
 
 ```drawio
 ${representations/default/diagram}

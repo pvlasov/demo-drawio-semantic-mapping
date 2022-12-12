@@ -12,3 +12,6 @@ ${representations/default/diagram}
 * Link with relative semantic reference: [Product 1](${semantic-ref/children/F8-iYcjzHZroJMS6UX_3-5/children/F8-iYcjzHZroJMS6UX_3-6})
 
 
+## Table of Contents
+
+${representations/default/toc}
