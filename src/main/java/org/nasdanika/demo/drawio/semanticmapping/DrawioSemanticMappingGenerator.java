@@ -42,6 +42,7 @@ import org.eclipse.emf.ecore.util.Diagnostician;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl;
 import org.json.JSONObject;
+import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.nasdanika.common.ConsumerFactory;
@@ -58,6 +59,10 @@ import org.nasdanika.common.PropertyComputer;
 import org.nasdanika.common.Status;
 import org.nasdanika.common.Supplier;
 import org.nasdanika.common.SupplierFactory;
+import org.nasdanika.drawio.Layer;
+import org.nasdanika.drawio.LayerElement;
+import org.nasdanika.drawio.Page;
+import org.nasdanika.drawio.comparators.LabelModelElementComparator;
 import org.nasdanika.emf.EObjectAdaptable;
 import org.nasdanika.emf.EmfUtil;
 import org.nasdanika.emf.persistence.EObjectLoader;
@@ -493,16 +498,86 @@ public class DrawioSemanticMappingGenerator {
 				// Deletes selection from state
 				String filter = NavigationPanelConsumerFactoryAdapter.CLEAR_STATE_FILTER + " tree.search.search_callback = (results, node) => results.split(' ').includes(node.original['data-nsd-action-uuid']);";
 				
-				return jsTreeFactory.bind("#nsd-site-map-tree", jsTree, filter, null).toString();				
+				return jsTreeFactory.bind("#nsd-site-map-tree", jsTree, filter, null).toString();			
 			};		
 			
 			MutableContext mctx = contentProviderContext.fork();
 			mctx.put("nsd-site-map-tree-script", siteMapTreeScriptComputer);
+									
+			java.util.function.Function<org.nasdanika.drawio.Element,Object> tableOfContents = new java.util.function.Function<org.nasdanika.drawio.Element,Object>() {
+
+				HTMLFactory htmlFactory = contentProviderContext.get(HTMLFactory.class, HTMLFactory.INSTANCE);
+
+				@Override
+				public Object apply(org.nasdanika.drawio.Element element) {
+					if (element instanceof org.nasdanika.drawio.Document) {
+						List<Page> pages = ((org.nasdanika.drawio.Document) element).getPages();
+						if (pages.size() == 1) {
+							return apply(pages.get(0));
+						}
+						Tag ol = htmlFactory.tag(TagName.ol);
+						for (Page page: pages) {
+							Tag li = htmlFactory.tag(TagName.li, page.getName(), apply(page));
+							ol.content(li);
+						}
+						return ol;
+					}
+					
+					if (element instanceof Page) {
+						List<Layer> layers = new ArrayList<>(((Page) element).getModel().getRoot().getLayers());
+						if (layers.size() == 1) {
+							return apply(layers.get(0));
+						}
+						Collections.reverse(layers);
+						Tag ol = htmlFactory.tag(TagName.ol);
+						for (Layer layer: layers) {
+							if (org.nasdanika.common.Util.isBlank(layer.getLabel())) {
+								ol.content(apply(layer));
+							} else {
+								Tag li = htmlFactory.tag(
+										TagName.li, 
+										org.nasdanika.common.Util.isBlank(layer.getLink()) || layer.getLinkedPage() != null ? layer.getLabel() : htmlFactory.tag(TagName.a, layer.getLabel()).attribute("href", layer.getLink()),
+										org.nasdanika.common.Util.isBlank(layer.getTooltip()) ? "" : " - " + Jsoup.parse(layer.getTooltip()).text() ,
+										apply(layer));
+								ol.content(li);								
+							}							
+						}
+						return ol;
+					}
+					
+					if (element instanceof Layer) {
+						List<LayerElement> layerElements = new ArrayList<>(((Layer) element).getElements());
+						Collections.sort(layerElements, new LabelModelElementComparator(false));
+						Tag ol = htmlFactory.tag(TagName.ol);
+						for (LayerElement layerElement: layerElements) {
+							if (org.nasdanika.common.Util.isBlank(layerElement.getLabel())) {
+								ol.content(apply(layerElement));
+							} else {
+								Tag li = htmlFactory.tag(
+										TagName.li,
+										org.nasdanika.common.Util.isBlank(layerElement.getLink()) || layerElement.getLinkedPage() != null ? Jsoup.parse(layerElement.getLabel()).text() : htmlFactory.tag(TagName.a, Jsoup.parse(layerElement.getLabel()).text()).attribute("href", layerElement.getLink()),										
+										org.nasdanika.common.Util.isBlank(layerElement.getTooltip()) ? "" : " - " + Jsoup.parse(layerElement.getTooltip()).text() ,
+										apply(layerElement));
+								ol.content(li);								
+							}							
+						}
+						return ol;
+						
+					}
+					
+					return null; 
+				}
+				
+			};
 			
 			Map<String, org.nasdanika.drawio.Document> representations = NcoreActionBuilder.resolveRepresentationLinks(action, uriResolver, progressMonitor);
 			for (Entry<String, org.nasdanika.drawio.Document> representationEntry: representations.entrySet()) {
 				try {
 					mctx.put("representations/" + representationEntry.getKey() + "/diagram", representationEntry.getValue().save(true));
+					Object toc = tableOfContents.apply(representationEntry.getValue());
+					if (toc != null) {
+						mctx.put("representations/" + representationEntry.getKey() + "/toc", toc.toString());
+					}
 				} catch (TransformerException | IOException e) {
 					throw new NasdanikaException("Error saving document");
 				}
